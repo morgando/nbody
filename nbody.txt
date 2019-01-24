@@ -1,0 +1,312 @@
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+
+/**
+ * Runs galactic simulation using the methods described in the top-level comment. For more information about 
+ * user-customizable parameters and the algorithm being used to run the simulation, look at this class’ constructor comment.
+ * 
+ * @author Morgan Douglas
+ * @version 1/13/18
+ */
+public class Nbody 
+{
+    //instance variables dealing with the input file
+    private File file;                               //contains information about the objects involved in the simulation
+    private BufferedReader read;                     //used to read the file indicated by the user in the call to the constructor
+    
+    //instance variables dealing with time
+    private Double simulationTime;                   //length of simulation in seconds
+    private Double deltaT;                           //time between two subsequent velocity/position estimations, in seconds
+    
+    //instance variable used to store objects in simulation
+    private ArrayList<Entity> entities;              //contains all Entities in the simulation
+    
+    //instance variable involved in collision handling
+    private ArrayList<Entity> collisions;            //stores Entities that have collided so they may be merged                    
+    
+    //constants
+    public final Double GRAV_FORCE=6.674E-11;        //represents gravitational force in (m^3)*(kg^-1)*(s^−2)
+    public final Double METERS_IN_PARSEC=3.086E16;   //number of meters in one parsec
+    public final Double KILOS_IN_SOLARMASS=1.989E30; //number of kilograms in one solar mass unit
+    public final Double METERS_IN_KILOMETER=1000.;   //number of meters in a kilometer
+
+    
+    /**
+     * Runs simulation. Extracts Entity information from user-indicated file and stores this information in the 
+     * ArrayList entities. 
+     * 
+     * (A) loops through entities and estimates the next velocity of each Entity, then uses this
+     * value to estimate the next position of each Entity. While making estimations, next velocity and next position Vectors
+     * are stored in the nextVelocity and nextPosition instance variables of each Entity.
+     * 
+     * (B) the ArrayList collisions is checked for emptiness. If it is not empty, that means that
+     * Entities have collided. In this case, the mass of one Entity will be set to the sum of the masses of
+     * both Entities, while the other will be removed from the simulation. The nextVelocity Vectors (and therefore
+     * the nextPosition Vectors, as well) of the collided Entities will already have been updated in accordance 
+     * with the conservation of linear momentum for inelastic collisions in step A (check the comments for the 
+     * findNextVelocity and mergedEntityVelocity methods to discover where and how this works, respectively).
+     * 
+     * (C) loops through entities and calls an update method contained within the Entity class for each. This
+     * method will set Vectors that have been stored in nextPosition and nextVelocity to be set to the
+     * current positions and velocities. Contains a statement that prints a String
+     * representation of the current position of each Entity for graphing purposes--this statement may be 
+     * modified by the user to something they find meaningful.
+     * 
+     * The process of estimating and updating continues until reaching a time duration defined by the user.
+     * 
+     * @param fileName the name of the file containing data regarding objects involved in simulation. Check precondition
+     * to see how the file should be structured.
+     * @param timeStep the amount of time between subsequent velocity/position estimations, in seconds.
+     * @param duration the total amount of time the simulation is to run, in seconds.
+     * 
+     * @throws NumberFormatException
+     * @throws IOException
+     * 
+     * @precondition fileName must reference a .txt file, however, the extension should not be included
+     * in the command line. For example, a file "data.txt" would be entered as a parameter solely as "data"
+     * 
+     * File /must/ be structured as so, with data regarding different Entities on different lines:
+     * 
+     * mass, positionX, positionY, positionZ, velocityX, velocityY, velocityZ
+     * 
+     * Mass values must be given in solar mass, position values in parsecs, and velocity values in km/s
+     */
+    public Nbody(String fileName, Double timeStep, Double duration) throws NumberFormatException, IOException
+    {
+        deltaT = timeStep;                                           //sets deltaT to value specified by user   
+        simulationTime = duration;                                   //sets simulationTime to value specified by user
+        
+        entities = new ArrayList<Entity>();                          //initializes ArrayList that will store all entities 
+                                                                     //involved in simulation
+        
+        file = new File(fileName + ".txt");                          //creates new file from given fileName
+        read = new BufferedReader(new FileReader(file));             //creates BufferedReader to parse file
+        
+        parseFile();                                                 //parses through file, creating Entity objects 
+                                                                     //from data in file and adding them to entities
+        
+        collisions = new ArrayList<Entity>();                        //initializes collisions
+        
+                                                           
+        for(Double t=0.; t<simulationTime; t+=deltaT) //runs the simulation for user-defined period of time
+        {
+            for(Entity j:entities)    //loops through Entity objects, estimating and storing
+            {                         //next velocities and positions of each Entity
+               
+                j.storeNextVelocity(findNextVelocity(j));            //estimates and stores next velocity of entity
+            
+                j.storeNextPosition(findNextPosition(j));            //uses previously estimates velocity to estimate
+                                                                     //next position of entity
+            }
+            
+            if(!collisions.isEmpty()) //if collisions have occurred, updates the mass of one Entity to the sum of collided 
+            {                         //Entities                       
+                
+                for(int i=0; i<collisions.size(); i+=2)
+                {
+                    collisions.get(i).setMass(collisions.get(i).mass //sets the mass of one Entity to the sum of the masses
+                            + collisions.get(i+1).mass);             //of both Entities
+                                        
+                    entities.remove(collisions.get(i+1));            //removes the other Entity from the simulation  
+                }
+                
+                collisions.clear();   //clears collisions after all collided Entities have been handled            
+            }
+            
+            
+            for(Entity j: entities) //updates velocity and position vectors for each Entity 
+            {  
+                j.update();                                          //calls Entity method that performs updates
+                
+                System.out.println(j.position.toString());           //prints Entity position in each dimension 
+            }                                                        //for graphing purposes
+                                                     
+        } //runs the simulation for user-defined period of time
+        
+        return;
+    }
+
+    /**
+     * Estimates the next velocity of an Entity object (after deltaT seconds) in 3 dimensions using the difference equation
+     * [velocity of Entity j after deltaT time]=[Current velocity of Entity j] - [Summation],
+     * where Summation = the sum of this computation for each Entity i, where i cannot equal Entity j:
+     * 
+     * [Mass of i]*[GRAV_FORCE]/([magnitude of (vector j - vector i)]^3)*deltaT*[vector j - vector i]
+     * 
+     * Checks if the magnitude of (vector j - vector i) equals zero for each Entity i. If so, the two Entities have collided
+     * and are added to collisions so that their masses are updated properly later in the simulation. In this case,
+     * the returned next velocity Vector will be in accordance with the conservation of linear momentum for inelastic collisions.
+     * An explanation of the equation used to compute this Vector can be found in the comment for the mergedEntityVelocity
+     * method.
+     * 
+     * @param j represents the Entity object for which next velocity is being estimated
+     * 
+     * @return a Vector containing estimations of the next velocities of the Entity object j in the x, y, and z dimensions.
+     */
+    public Vector findNextVelocity(Entity j)
+    {
+        Vector summation = new Vector(0.,0.,0.);     //initializes summation to zero in all dimensions
+        
+        for(Entity i:entities) //loops through entities, each time performing a computation, the value of which is added 
+        {                      //to summation, which is part of the difference equation described in the method comment
+
+            if(i!=j)           //adds to summation only if Entity i does not equal Entity j
+            {
+                Vector diff = j.position.subtract(i.position);
+                Double magnitude=diff.magnitude();
+                
+                if(magnitude==0.0) //returns velocity vector in keeping with the conservation of linear momentum 
+                {                  //for inelastic collisions if i and j have the same position in three dimensions.
+                                   //Adds i and j to collisions so their masses can be updated later
+                    
+                    collisions.add(i);                      //adds i and j to collisions
+                    collisions.add(j);
+                    
+                    return mergedEntityVelocity(i, j);      //returns next velocity of merged Entity
+                    
+                }
+                else //if i and j do not have the same position, performs computation and adds its value to summation
+                {
+                    summation.addTo(diff.multiply(((i.mass*GRAV_FORCE)/Math.pow(magnitude, 3))*deltaT));
+                }
+            }
+        } //calculates the value of the summation 
+        
+        return j.velocity.subtract(summation);      //subtracts the computed value of summation from the current
+                                                    //velocity of Entity j to estimate j's velocity after deltaT time
+    }
+    
+    /**
+     * Estimates the next position of an Entity object (after deltaT seconds) using the difference equation:
+     * [position of j after deltaT seconds]=[current position of j] + [velocity of j after deltaT seconds]*deltaT
+     * 
+     * @param j represents the Entity object for which next position is being estimated
+     * 
+     * @return a Vector containing estimations of the next positions of the Entity object j in the x, y, and z dimensions
+     */
+    public Vector findNextPosition(Entity j)
+    {
+        return j.position.add(j.nextVelocity.multiply(deltaT));                 //computes next position Vector
+    }
+    
+    /**
+     * Computes the velocity (in x, y, and z dimensions) of a new more massive Enitity that results 
+     * from the inelastic collision of Entities i and j. Stores this velocity as the next velocity of Entity j.
+     * 
+     * This velocity is computed using the equation below:
+     * 
+     * ([mass of i]*[velocity vector of i] + [mass of j]*[velocity vector of j])/([mass of i] + [mass of j])
+     * 
+     * The above equation conserves linear momentum. (this information can be found in the "N-Body v1" document on
+     * Athena)
+     * 
+     * @param i an Entity object
+     * @param j an Entity object
+     * 
+     * @precondition i and j have the same position in the x, y, and z dimensions
+     * 
+     * @return a Vector object representing the velocity of the new Entity that results from the merging of i and j
+     */
+    public Vector mergedEntityVelocity(Entity i, Entity j)
+    {
+        return (i.velocity.multiply(i.mass).add(j.velocity.multiply(j.mass))    //computes and sets new velocity Vector 
+                .divide((i.mass+j.mass)));                                      //using equation described in method comment                                                                                                          
+    }
+    
+    /**
+     * Constructs Entity objects using information in the file indicated by the file name passed in the
+     * call to the Nbody constructor. Adds new Entity objects to entities.
+     * 
+     * @throws NumberFormatException
+     * @throws IOException
+     */
+    public void parseFile() throws NumberFormatException, IOException
+    {
+        try
+        {
+            while(read.ready()) //parses through file and creates Entity objects using information in file
+            {
+                String line = read.readLine();                      //reads single line of file
+            
+                Double mass=0.;                                     //initializes local variables that will temporarily store
+                Vector positions=new Vector(0.,0.,0.);              //information from file before Entity objects are created
+                Vector velocities=new Vector(0.,0.,0.);
+            
+                for(int i=0; i<3; i++)
+                {
+                    int index = line.indexOf(",");                                          //extracts next number in line
+                    String lineComp = line.substring(0, index);                           
+                    Double comp = Double.valueOf(lineComp);
+                
+                    if(i==0)       //extracts mass from file information
+                    {
+                        mass = comp*KILOS_IN_SOLARMASS;                                     //converts mass from solar mass
+                        line = line.substring(index+1);                                     //to kilograms
+                    
+                    }
+                    else if(i==1)  //constructs position Vector from file information
+                    {
+                        Double positionOne = comp;                                          //extracts x-component of position
+                        line = line.substring(index+1);
+               
+                        int indexSpace2 = line.indexOf(" ");                                //extracts y-component of position
+                        int indexComma2 = line.indexOf(",");
+                        String lineComp2 = line.substring(indexSpace2+1, indexComma2);
+                        Double comp2 = Double.valueOf(lineComp2);
+                        Double positionTwo = comp2;
+                        line = line.substring(indexComma2+1);
+                        
+                        int indexSpace3 = line.indexOf(" ");                                //extracts z-component of position
+                        int indexComma3 = line.indexOf(",");        
+                        String lineComp3 = line.substring(indexSpace3+1, indexComma3);
+                        Double comp3 = Double.valueOf(lineComp3);
+                        Double positionThree = comp3;
+                        
+                        positions = new Vector(positionOne, positionTwo, positionThree);   //constructs position vector
+                        
+                        positions = positions.multiply(METERS_IN_PARSEC);                  //converts positions from parsecs 
+                                                                                           //to meters
+                        line = line.substring(indexComma3+1);                              
+                    }
+                    else           //constructs velocity Vector from file information
+                    {
+                        Double velocityOne = comp;                                         //extracts x-component of velocity
+                        line = line.substring(index+1);
+                        
+                        int indexSpace4 = line.indexOf(" ");                               //extracts y-component of velocity
+                        int indexComma4 = line.indexOf(",");
+                        String lineComp4 = line.substring(indexSpace4, indexComma4);
+                        Double comp4 = Double.valueOf(lineComp4);
+                        Double velocityTwo = comp4;                                    
+                        line = line.substring(indexComma4+1);
+                        
+                        int indexSpace5 = line.indexOf(" ");                               //extracts z-component of velocity
+                        String lineComp5 = line.substring(indexSpace5);
+                        Double comp5 = Double.valueOf(lineComp5);
+                        Double velocityThree = comp5;               
+                        
+                        
+                        velocities = new Vector(velocityOne, velocityTwo, velocityThree);  //constructs velocity Vector
+                        
+                        velocities = velocities.multiply(METERS_IN_KILOMETER);             //converts velocities from km/s to m/s                     
+                    }
+                } 
+                
+                Entity ent = new Entity(mass, positions, velocities); //uses extracted information to create Entity object
+            
+                entities.add(ent);                                    //adds newly created Entity to entities
+                
+            } //parses through file and creates Entity objects using information in file
+            
+            return;
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();                                      //prints what exception is and line it occurred on
+            return;                                                   //and terminates simulation
+        }
+    }
+}

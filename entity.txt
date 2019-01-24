@@ -1,0 +1,96 @@
+/**
+ * Entity objects represent stars in the simulation. 
+ * Stores and manipulates mass/position/velocity information about stars.
+ * 
+ * @author Morgan Douglas
+ * @version 01/13/18
+ */
+public class Entity 
+{
+    protected Double mass;          //the mass of the Entity object in kg
+    protected Vector position;      //the position of the Entity object in x, y, and z dimensions in m
+    protected Vector velocity;      //the velocity of the Entity object in x, y, and z dimensions in m/s
+
+    protected Vector nextPosition;  //the next position of the Entity object in x, y, and z dimensions in meters
+    protected Vector nextVelocity;  //the next velocity of the Entity object in x, y, and z dimensions in m/s
+    
+    /**
+     * constructs an Entity object
+     * 
+     * @param m the mass of the Entity object in kilograms in kg
+     * @param pos the position of the Entity object in x, y, and z dimensions in m
+     * @param vel the velocity of the Entity object in x, y, and z dimensions in m/s
+     */
+    public Entity(Double m, Vector pos, Vector vel)
+    { 
+        mass=m;                                 //initializes mass, position, and velocity
+        position=pos;                           //to user-defined values
+        velocity=vel;
+        
+        nextPosition=new Vector(0.,0.,0.);      //initializes nextPosition and nextVelocity
+        nextVelocity=new Vector(0.,0.,0.);      //to Vectors with zero in 3-dimensions.
+ 
+        
+        return;
+    }
+
+    /**
+     * sets Vectors representing the Entity object's next position and next velocity to the
+     * Entity object's current position and current velocity
+     */
+    public void update()
+    {
+        position=nextPosition;
+        velocity=nextVelocity;
+        
+        return;
+    }
+
+    /**
+     * stores the next position of the Entity object
+     * 
+     * @param pos a Vector object representing the Entity object's next position in 3 dimensions in m
+     */
+    public void storeNextPosition(Vector pos)
+    {
+        nextPosition=pos;
+        
+        return;
+    }
+
+    /**
+     * stores the next velocity of the Entity object
+     * 
+     * @param vel a Vector object representing the Entity object's next velocity in 3 dimensions in m/s
+     */
+    public void storeNextVelocity(Vector vel)
+    {
+        nextVelocity=vel;
+        
+        return;
+    }
+
+    /**
+     * sets the mass of the Entity object to m
+     * 
+     * @param m the value to which the mass of the Entity object is to be set in kg
+     */
+    public void setMass(Double m)
+    {
+        mass=m;
+        
+        return;
+    }
+
+    /**
+     * sets the velocity of the Entity object to m
+     * 
+     * @param vel the Vector object to which the velocity of the Entity object is to be set in m/s
+     */
+    public void setVelocity(Vector vel)
+    {
+        velocity=vel;
+        
+        return;
+    }
+}

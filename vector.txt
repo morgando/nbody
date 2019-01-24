@@ -1,0 +1,140 @@
+/**
+ * Stores the x, y, and z components that make up a vector.
+ * Contains several methods that facilitate computation involving Vector objects with both 
+ * other Vector objects and scalar values.
+ * 
+ * This is a minimal Vector class. In the future, a user should consider adding the following
+ * methods:
+ * 
+ * A setter method that changes x, y, and z values to new values provided as parameters.
+ * 
+ * Multiplication, division, and subtraction methods that modify instance variables instead 
+ * of creating and returning new Vector objects. Could be named 
+ * (multiply/divide/subtract)Internal in keeping with the naming of the similar
+ * addInternal method.
+ * 
+ * 
+ * @author Morgan Douglas
+ * @version 01/13/18
+ */
+public class Vector 
+{
+    private Double x;       //stores x component of vector
+    private Double y;       //stores y component of vector
+    private Double z;       //stores z component of vector
+
+    /**
+     * Constructs a Vector object
+     * 
+     * @param xVal the x component of the vector
+     * @param yVal the y component of the vector
+     * @param zVal the z component of the vector
+     */
+    public Vector(Double xVal, Double yVal, Double zVal)
+    {
+        x=xVal;              //stores x, y, and z values provided
+        y=yVal;
+        z=zVal;
+        
+        return;
+    }
+    
+    /**
+     * @return the x component of the Vector object
+     */
+    public Double getX()
+    {
+        return x;
+    }
+    
+    /**
+     * @return the y component of the Vector object
+     */
+    public Double getY()
+    {
+        return y;
+    }
+    
+    /**
+     * @return the z component of the Vector object
+     */
+    public Double getZ()
+    {
+        return z;
+    }
+   
+    /**
+     * adds another Vector object v to the Vector object. Modifies instance variables to represent output of summation.
+     * 
+     * @param v another Vector object being added to the Vector object
+     */
+    public void addInternal(Vector v)
+    {
+        x+=v.getX();        //increments x, y, and z instance variables by x, y, and z values of Vector v
+        y+=v.getY();
+        z+=v.getZ();
+        
+        return;
+    }
+    
+    /**
+     * adds another Vector object v to the Vector object. Instead of modifying instance variables, creates a new
+     * Vector with x, y, and z values equal to the results of the summation.
+     * 
+     * @param v the another Vector object being added to the Vector object
+     * @return a Vector object resulting from the addition of the Vector object with another Vector object v
+     */
+    public Vector add(Vector v)
+    {
+        return new Vector(x+v.getX(), y+v.getY(), z+v.getZ());
+    }
+    
+    /**
+     * performs multiplication between a scalar and a Vector object.
+     * 
+     * @param amt the scalar to which the Vector object is being multiplied
+     * @return a new Vector object resulting from the multiplication of two vectors
+     */
+    public Vector multiply(Double amt)
+    {
+        return new Vector(x*amt, y*amt, z*amt);
+    }
+    
+    /**
+     * performs division of a scalar from a Vector object
+     * 
+     * @param amt the scalar that the Vector object is being divided by
+     * @return a new Vector object representing the result of dividing the Vector object by amt
+     */
+    public Vector divide(Double amt)
+    {
+        return new Vector(x/amt, y/amt, z/amt);
+    }
+    
+    /**
+     * @return the magnitude of the Vector object
+     */
+    public Double magnitude()
+    {
+        return Math.sqrt(x*x+y*y+z*z);
+    }
+    
+    /**
+     * subtracts two Vectors
+     * 
+     * @param v another Vector that is to be subtracted
+     * @return a new Vector resulting from the subtraction of two Vectors
+     */
+    public Vector subtract(Vector v)
+    {
+        return new Vector(x-v.getX(),y-v.getY(),z-v.getZ());
+    }
+
+    /**
+     * @return a String representation of the Vector object, where x, y, and z values are separated by TABs
+     */
+    public String toString()
+    {
+        return x + "\t" + y + "\t" + z;
+    }
+}
