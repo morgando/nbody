@@ -31,6 +31,8 @@ the user can customize the duration of the simulation and the length of time bet
 velocity/position estimations in the call to the Nbody constructor in the main method. 
 Again, check the comment for the constructor of the Nbody class to see specifications about these parameters.
 
+Graphs file contains a brief explanation of methods and graphs created with generated data.
+
 ## @author Morgan Douglas
 ## @version 01/13/18
 
